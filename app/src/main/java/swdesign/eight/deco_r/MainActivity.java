@@ -56,6 +56,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static final int GPS_ENABLE_REQUEST_CODE = 2001;
     private static final int PERMISSIONS_REQUEST_CODE = 100;
 
+
+    UserPermission userPermission;
+
     //map (logical)
     GoogleMap map;
     Marker currentMarker = null;
@@ -81,6 +84,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mLayout = findViewById(R.id.layout_main);
 
+
         // LocationRequest Class : setup and insert [START]
         locationRequest = new LocationRequest()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
@@ -91,9 +95,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         builder.addLocationRequest(locationRequest);
         // LocationRequest Class : setup and insert [END]
 
-
-
-        AutoPermissions.Companion.loadAllPermissions(this, 101); //get AutoPermission
 
 
 
