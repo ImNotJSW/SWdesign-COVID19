@@ -6,21 +6,18 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.Manifest;
 import android.os.Looper;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -32,7 +29,6 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -40,8 +36,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.snackbar.Snackbar;
-import com.pedro.library.AutoPermissions;
-import com.pedro.library.AutoPermissionsListener;
 
 import java.io.IOException;
 import java.util.List;
@@ -54,10 +48,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Manifest.permission.ACCESS_COARSE_LOCATION
     };
     private static final int GPS_ENABLE_REQUEST_CODE = 2001;
-    private static final int PERMISSIONS_REQUEST_CODE = 100;
+    private static final int LOCATION_PERMISSIONS_REQUEST_CODE = 100;
 
-
-    UserPermission userPermission;
 
     //map (logical)
     GoogleMap map;
@@ -84,7 +76,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mLayout = findViewById(R.id.layout_main);
 
-
         // LocationRequest Class : setup and insert [START]
         locationRequest = new LocationRequest()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
@@ -100,8 +91,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // map UI and Class : setup and initialize [START]
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
         //goto onMapReady Method (콜백)
 
@@ -118,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map = googleMap;
 
         //런타임 퍼미션 요청 대화상자나 GPS 활성 요청 대화상자 보이기전에
-        //일단 초기 위치를 대구로 이동함
+        //일단 초기 위치를 대구광역시청으로 이동함
         setDefaultLocation();
 
         //퍼미션 관련 이슈를 조회합니다.
@@ -128,9 +118,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         //장소 권한이 있다면 현재 위치 업데이트를 시작합니다.
         startLocationUpdates();
-
-
-
 
         //현재 위치로 가게해주는 버튼을 띄우는 것
         map.getUiSettings().setMyLocationButtonEnabled(true);
@@ -143,9 +130,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         @Override
         public void onLocationResult(LocationResult locationResult) {
             super.onLocationResult(locationResult);
-
             List<Location> locationList = locationResult.getLocations();
-
             if (locationList.size() > 0) {
                 location = locationList.get(locationList.size() - 1);
                 //location = locationList.get(0);
@@ -196,7 +181,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-
     @Override
     protected void onStart() {
         super.onStart();
@@ -216,7 +200,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-
     @Override
     protected void onStop() {
 
@@ -228,9 +211,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mFusedLocationClient.removeLocationUpdates(locationCallback);
         }
     }
-
-
-
 
     public String getCurrentAddress(LatLng latlng) {
 
@@ -267,14 +247,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-
     public boolean checkLocationServicesStatus() {
         LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
                 || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
-
 
     private void showDialogForLocationServiceSetting() {
 
@@ -322,7 +300,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-
     public void setDefaultLocation() {
 
 
@@ -347,8 +324,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-
-
     private boolean checkLocationPermissionPermitted() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -365,8 +340,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 @Override
                 public void onClick(View view) {
-                    //3. 사용자게에 퍼미션 요청을 합니다. 요청 결과는 onRequestPermissionResult에서 수신됩니다.
-                    ActivityCompat.requestPermissions( MainActivity.this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);
+                    //3. 사용자에 퍼미션 요청을 합니다. 요청 결과는 onRequestPermissionResult에서 수신됩니다.
+                    ActivityCompat.requestPermissions( MainActivity.this, REQUIRED_PERMISSIONS, LOCATION_PERMISSIONS_REQUEST_CODE);
                 }
             }).show();
 
@@ -374,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             //4. 사용자가 퍼미션 거부를 한 적이 없는 경우에는 퍼미션 요청을 바로 합니다.
             // 요청 결과는 onRequestPermissionResult에서 수신됩니다.
-            ActivityCompat.requestPermissions( this, REQUIRED_PERMISSIONS, PERMISSIONS_REQUEST_CODE);
+            ActivityCompat.requestPermissions( this, REQUIRED_PERMISSIONS, LOCATION_PERMISSIONS_REQUEST_CODE);
         }
     }
 
@@ -402,9 +377,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onRequestPermissionsResult(int permsRequestCode, @NonNull String[] permissions, @NonNull int[] grandResults) {
 
-        if ( permsRequestCode == PERMISSIONS_REQUEST_CODE && grandResults.length == REQUIRED_PERMISSIONS.length) {
+        if ( permsRequestCode == LOCATION_PERMISSIONS_REQUEST_CODE && grandResults.length == REQUIRED_PERMISSIONS.length) {
 
-            // 요청 코드가 PERMISSIONS_REQUEST_CODE 이고, 요청한 퍼미션 개수만큼 수신되었다면
+            // 요청 코드가 LOCATION_PERMISSIONS_REQUEST_CODE 이고, 요청한 퍼미션 개수만큼 수신되었다면
 
             boolean check_result = true;
 
@@ -446,8 +421,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
                     // "다시 묻지 않음"을 사용자가 체크하고 거부를 선택한 경우에는 설정(앱 정보)에서 퍼미션을 허용해야 앱을 사용할 수 있습니다.
-                    Snackbar.make(mLayout, "퍼미션이 거부되었습니다. 설정(앱 정보)에서 퍼미션을 허용해야 합니다. ",
-                            Snackbar.LENGTH_INDEFINITE).setAction("확인", new View.OnClickListener() {
+                    Snackbar.make(mLayout, "퍼미션이 거부되었습니다. 설정(앱 정보)에서 퍼미션을 허용해야 합니다. ", Snackbar.LENGTH_INDEFINITE).setAction("확인", new View.OnClickListener() {
 
                         @Override
                         public void onClick(View view) {
