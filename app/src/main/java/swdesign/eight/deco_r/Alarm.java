@@ -24,10 +24,11 @@ public class Alarm extends AppCompatActivity {
 
     Integer alarm_number = 3;//1은 무음 2는 진동 3은 소리
 
-    boolean before_entered=true;//전에 들어와있던 신호
+    boolean before_entered=false;//전에 들어와있던 신호 처음에는 false로 초기화 시켜놓기
     boolean is_entered=false;//distance calculator에서 받아오기
 
-    NotificationManager manager;
+
+    NotificationManager manager;//상단 알림 메소드
 
     private static String CHANNEL_ID = "channer1";
     private static String CHANNEL_NAME = "channer1";
@@ -37,6 +38,8 @@ public class Alarm extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+    DistanceCalculator distanceCalculator = new DistanceCalculator();
+    is_entered = distanceCalculator.compareLocation();//is_entered를 상천이 메소드에서 받아오기
         if (before_entered != is_entered)//before와 is가 같을경우
         {
             if (is_entered == true) {
