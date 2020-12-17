@@ -8,7 +8,7 @@ public class DistanceCalculator {
     private ArrayList<Location> pinLocations;
     private Location userLocation;
     private double circleRadius; //미터 단위
-
+    boolean entered = false;
     public DistanceCalculator() {
         pinLocations = new ArrayList<Location>();
         userLocation = new Location("user");
@@ -21,14 +21,14 @@ public class DistanceCalculator {
         //나중: 유저 반경원 크기(반지름, circleRadius) 받는 부분
 
         //원반경 내에 들어온 pin 있는지 검사
-        for(int i = 0; i < pinLocations.size(); i++) {
+        for (int i = 0; i < pinLocations.size(); i++) {
             Location pinLocation = pinLocations.get(i);
             double distance = userLocation.distanceTo(pinLocation);
-            if(distance < circleRadius) {
-                return true;
+            if (distance < circleRadius) {
+                entered = true;
             }
+            entered = false;
         }
-        return false;
+        return entered;
     }
-
 }

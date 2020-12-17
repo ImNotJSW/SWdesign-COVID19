@@ -21,6 +21,12 @@ import androidx.appcompat.app.AppCompatActivity;
 
 
 public class Alarm extends AppCompatActivity {
+
+    Integer alarm_number = 3;//1은 무음 2는 진동 3은 소리
+
+    boolean before_entered=true;//전에 들어와있던 신호
+    boolean is_entered=false;//distance calculator에서 받아오기
+
     NotificationManager manager;
 
     private static String CHANNEL_ID = "channer1";
@@ -31,55 +37,92 @@ public class Alarm extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        if (before_entered != is_entered)//before와 is가 같을경우
+        {
+            if (is_entered == true) {
+                if (alarm_number == 1) {
+                    showNoti1();//클릭하면 메소드 실행
+                }
 
-        Button button2 = findViewById(R.id.button2);//이름을 통해 찾는 버튼
-        button2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showNoti1();//클릭하면 메소드 실행
-            }
+                if (alarm_number == 2) {
+                    Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(1000, 19));
+                    } else {
+                        vibrator.vibrate(1000);
+                    }
+                    showNoti1();
+                }
 
-        });
 
-        Button button3 = findViewById(R.id.button3);
-        button3.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator.vibrate(VibrationEffect.createOneShot(1000, 19));
-                } else {
-                    vibrator.vibrate(1000);
+                if (alarm_number == 3) {
+                    Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                    Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), uri);
+                    ringtone.play();
+                    showNoti1();
                 }
             }
-        });
+            else
+            {
+                if (alarm_number == 1) {
+                    showNoti2();//클릭하면 메소드 실행
+                }
 
-        Button button4 = findViewById(R.id.button4);
-        button4.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), uri);
-                ringtone.play();
+                if (alarm_number == 2) {
+                    Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(1000, 19));
+                    } else {
+                        vibrator.vibrate(1000);
+                    }
+                    showNoti2();
+                }
+
+
+                if (alarm_number == 3) {
+                    Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                    Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), uri);
+                    ringtone.play();
+                    showNoti2();
+                }
             }
-        });
-
+            before_entered = is_entered;
+        }
     }
-
     public void showNoti1() {
 
         manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         NotificationCompat.Builder builder = null; //상단알림 프로그램 객체 생성
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {//버전 비교를 통해 알림 코드생성
             manager.createNotificationChannel(new NotificationChannel(
-                    CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_DEFAULT
+                    CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW
             ));
             builder = new NotificationCompat.Builder(this, CHANNEL_ID);
         } else {
             builder = new NotificationCompat.Builder(this);
         }
-        builder.setContentTitle("간단알림");//알림제목
-        builder.setContentText("간단 알림메시지입니다.");//알림내용
+        builder.setContentTitle("위험합니다");//알림제목
+        builder.setContentText("확진자 반경 내에 접근했습니다");//알림내용
+        builder.setSmallIcon(android.R.drawable.ic_menu_view);
+        Notification noti = builder.build();
+
+        manager.notify(1, noti);
+    }
+
+    public void showNoti2() {
+
+        manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        NotificationCompat.Builder builder = null; //상단알림 프로그램 객체 생성
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {//버전 비교를 통해 알림 코드생성
+            manager.createNotificationChannel(new NotificationChannel(
+                    CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW
+            ));
+            builder = new NotificationCompat.Builder(this, CHANNEL_ID);
+        } else {
+            builder = new NotificationCompat.Builder(this);
+        }
+        builder.setContentTitle("안전합니다");//알림제목
+        builder.setContentText("확진자 반경 내에 벗어났습니다");//알림내용
         builder.setSmallIcon(android.R.drawable.ic_menu_view);
         Notification noti = builder.build();
 
