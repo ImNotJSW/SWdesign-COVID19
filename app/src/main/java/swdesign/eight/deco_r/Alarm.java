@@ -19,7 +19,7 @@ import android.view.View;
 import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 
-
+//나중에 이거 다 MainActivity에 옮길 예정
 public class Alarm extends AppCompatActivity {
 
     int alarm_type = 3;//1은 무음 2는 진동 3은 소리
@@ -59,6 +59,10 @@ public class Alarm extends AppCompatActivity {
                     ringtone.play();
                 }
                 showNoti(is_entered); //푸시 알림 진행
+                //Intent i = new Intent(SecondActivity.this, ResultActivity.class);
+                //화면간 데이터 전달
+                //i.putExtra("score", score);
+                //startActivity(i);
                 before_entered = is_entered;
             }
             is_entered = distanceCalculator.compareLocation();
