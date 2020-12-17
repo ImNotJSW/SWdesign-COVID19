@@ -434,6 +434,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+//    public void fun()
+//    {
+//        boolean isEntered = false;
+//        DistanceCalculator distanceCalculator = new DistanceCalculator();
+//
+//        while (true) {
+//            if(isEntered) { //반경원 안으로 들어온 핀이 있으면,
+//                //핀이 반경원에 들어왔다고 알림로직
+//
+//                while (isEntered) { //핀이 반경원 벗어날 때 까지 반복
+//                    isEntered = distanceCalculator.compareLocation();
+//                    //일정 시간동안 딜레이
+//                }
+//            }
+//            else { //반경원 안에 핀이 하나도 없으면,
+//                //핀이 반경원을 벗어 났다고 알림로직
+//
+//                while (isEntered == false) { //핀이 반경원안으로 들어올 때 까지 반복
+//                    isEntered = distanceCalculator.compareLocation();
+//                    //일정 시간동안 딜레이
+//                }
+//            }
+//        }
+//
+//    }
 
 
 }
