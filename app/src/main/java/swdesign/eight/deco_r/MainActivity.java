@@ -9,6 +9,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -32,6 +33,8 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.Circle;
+import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -57,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //map (logical)
     GoogleMap map;
     Marker currentMarker = null;
+    Circle currentCircle = null;
 
     //entire layouts
     private View mLayout;
@@ -250,6 +254,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     currentMoved = true;
                 }
 
+                //현재 위치에 반경원 생성하고 이동
+                updateCircle(location);
 
                 mCurrentLocation = location;
 
@@ -294,27 +300,47 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     //마커 생성?
-    public void setCurrentLocation(Location location, String markerTitle, String markerSnippet) {
+//    public void setCurrentLocation(Location location, String markerTitle, String markerSnippet) {
+//
+//
+//        if (currentMarker != null) currentMarker.remove();
+//
+//
+//        LatLng currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+//
+//        MarkerOptions markerOptions = new MarkerOptions();
+//        markerOptions.position(currentLatLng);
+//        markerOptions.title(markerTitle);
+//        markerOptions.snippet(markerSnippet);
+//        markerOptions.draggable(true);
+//
+//
+//        currentMarker = map.addMarker(markerOptions);
+//
+//        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentLatLng);
+//        map.moveCamera(cameraUpdate);
+//
+//    }
 
+    //반경원 생성 및 갱신
+    public void updateCircle(Location location) {
+        if (currentCircle != null) currentCircle.remove(); //기존 반경원 삭제
 
-        if (currentMarker != null) currentMarker.remove();
+        LatLng currentLatLng = new LatLng(location.getLatitude(), location.getLongitude()); //현재 위치 구해서 변수에 저장
 
+        // 반경 원
+        CircleOptions circleOptions = new CircleOptions().center(currentLatLng) //원점
+                .radius(500)      //반지름 단위 : m(나중: 나중에 설정 클래스의 get으로 이 반지름 받아야됨)
+                .strokeWidth(0f)  //선너비 0f : 선없음
+                .fillColor(Color.parseColor("#55FE9A2E")); //배경색
 
-        LatLng currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(currentLatLng);
-        markerOptions.title(markerTitle);
-        markerOptions.snippet(markerSnippet);
-        markerOptions.draggable(true);
-
-
-        currentMarker = map.addMarker(markerOptions);
+        //현재 반경원 저장
+        currentCircle = map.addCircle(circleOptions);
 
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentLatLng);
         map.moveCamera(cameraUpdate);
-
     }
+
     //좌표->주소 변환
     public String getCurrentAddress(LatLng latlng) {
 
