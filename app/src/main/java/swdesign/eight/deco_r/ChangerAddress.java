@@ -25,24 +25,27 @@ public class ChangerAddress {
         this.geocoder = geocoder;
     }
 
-    public Location changeToLocation(String str) { //인자로 받은 주소 하나(String클래스)를 좌표 하나(Location클래스)로 변환 후 반환
+    //인자로 받은 주소 하나(String클래스)를 좌표 하나(Location클래스)로 변환 후 반환하는 함수
+    public Location changeToLocation(String str) {
         List<Address> list = null;
         try {
-            list = geocoder.getFromLocationName(str,1);
+            list = geocoder.getFromLocationName(str,1); //해당 주소를 좌표로 변환해서 저장
         } catch (IOException e) {
             e.printStackTrace();
             Log.e("test", "입출력 오류 - 주소변환시 에러발생");
         }
 
         if (list != null) {
-            if (list.size() == 0) {
-                return null; //이 주소에 해당하는 좌표가 없으면 null 반환
-                //tv.setText("해당되는 주소 정보는 없습니다");
-            } else {
+            if (list.size() == 0) { //이 주소에 해당하는 좌표가 없으면 null 반환
+                return null;
+            }
+            else {
+                //좌표의 위경도 구하기
                 Address addr = list.get(0);
                 double latitude = addr.getLatitude();
                 double longitude = addr.getLongitude();
 
+                //위경도를 Location클래스에 저장해 반환
                 Location location = new Location("point");
                 location.setLatitude(latitude);
                 location.setLongitude(longitude);
@@ -57,8 +60,8 @@ public class ChangerAddress {
 //                startActivity(intent);
             }
         }
-        else {
-            return null; //list가 null일시 null 반환
+        else { //list가 null일시 null 반환
+            return null;
         }
     }
 }
