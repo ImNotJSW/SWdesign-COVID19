@@ -27,7 +27,6 @@ public class DistanceCalculator {
             if (distance < circleRadius) {
                 entered = true;
             }
-            entered = false;
         }
         return entered;
     }
