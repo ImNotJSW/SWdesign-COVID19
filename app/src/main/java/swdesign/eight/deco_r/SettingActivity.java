@@ -13,9 +13,9 @@ public class SettingActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-//        onclik(
-//                setCircleSize();
-//        )
+        //onclik(
+        //        setCircleSize();
+        //)
     }
 
     public void setCircleSize() {

@@ -17,8 +17,10 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.Manifest;
 import android.os.Looper;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -61,6 +63,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Marker currentMarker = null;
     Circle currentCircle = null;
 
+    Thread crawlingThread;
+    ArrayList<ConfirmedData> confirmedDataList;
     ArrayList<Marker> currentMarkers = null;
     ArrayList<Location> pinLocations = null;
 
@@ -85,7 +89,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mLayout = findViewById(R.id.layout_main);
 
-        // LocationRequest Class : setup and insert [START]
+        //크롤러로부터 확진장소 데이터를 받습니다.
+        Crawler coronaCrawler = new Crawler(this);
+        confirmedDataList = coronaCrawler.getConfirmedDataList();
+        crawlingThread = coronaCrawler.crawlingThread;
+        //주의 : crawlingThread.join() 구문 이전에 이 ArrayList를 사용하면 에러가 발생함
+
+
+        // LocationRequest Class setting : 내 위치 정보를 요청하는 객체를 정의합니다.
         locationRequest = new LocationRequest()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(2000)   /*location Request coolTime(ms)*/
@@ -93,15 +104,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
         builder.addLocationRequest(locationRequest);
-        // LocationRequest Class : setup and insert [END]
 
 
-        // map UI and Class : setup and initialize [START]
+        // map UI and Class : setup and initialize
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
 
+        try { //onMapReady Method를 실행하기 전에, crawling 작업을 끝내야 onMapRead Method에서 핀 표시 가능.
+            crawlingThread.join(); //confirmedDataList
+        } catch (Exception e) {
+            Log.e("Thread join", "Thread join failed");
+        }
+
+        mapFragment.getMapAsync(this);
         //-------onMapReady Method (콜백)으로 호출됨-------
+
+
+        //- 테스트 전용 코드 : 앱 화면 하단에 크롤링 결과를 표시
+        String str = new String();
+        for (ConfirmedData data : coronaCrawler.confirmedDataList) {
+            str += data.toString() + "\n";
+        }
+
+        TextView textView = findViewById(R.id.text);
+        textView.setMovementMethod(new ScrollingMovementMethod());
+        textView.setText(str);
 
     }
 
@@ -134,6 +161,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         //확대 비율 조정 (오동작 위험 있음)
         map.animateCamera(CameraUpdateFactory.zoomTo(15));
+
+
+        //- 전달받은 방문장소 데이터로 지도에 핀을 표시하는 메소드를 호출합니다.
+        updatePin(confirmedDataList);
     }
 
     //----------------------------onMapReady의 메소드 실행 순서로 배치---------------------------------
