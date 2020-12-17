@@ -24,20 +24,28 @@ public class Alarm extends AppCompatActivity {
 
     Integer alarm_number = 3;//1은 무음 2는 진동 3은 소리
 
-    boolean before_entered=true;//전에 들어와있던 신호
-    boolean is_entered=false;//distance calculator에서 받아오기
+    boolean before_entered=false;//전에 들어와있던 신호
+    boolean is_entered;
 
     NotificationManager manager;
 
+
+
     private static String CHANNEL_ID = "channer1";
     private static String CHANNEL_NAME = "channer1";
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (before_entered != is_entered)//before와 is가 같을경우
+        DistanceCalculator distanceCalculator = new DistanceCalculator();//distance calculator에서 받아오기
+        is_entered = distanceCalculator.compareLocation();
+
+
+        if (before_entered != is_entered)//before와 is가 같지않을경우
         {
             if (is_entered == true) {
                 if (alarm_number == 1) {
