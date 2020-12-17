@@ -32,7 +32,6 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.Circle;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
@@ -41,10 +40,9 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-
-import static java.lang.Thread.*;
 
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, ActivityCompat.OnRequestPermissionsResultCallback {
@@ -55,12 +53,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
     private static final int GPS_ENABLE_REQUEST_CODE = 2001;
     private static final int LOCATION_PERMISSIONS_REQUEST_CODE = 100;
+    public static int circleSize = 2;
 
 
     //map (logical)
     GoogleMap map;
     Marker currentMarker = null;
     Circle currentCircle = null;
+
+    ArrayList<Marker> currentMarkers = null;
+    ArrayList<Location> pinLocations = null;
 
     //entire layouts
     private View mLayout;
@@ -268,7 +270,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //-----------------------------onMapReady의 메소드 실행 순서로 배치 End----------------------------
 
-
     @Override
     protected void onStart() {
         super.onStart();
@@ -340,6 +341,49 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentLatLng);
         map.moveCamera(cameraUpdate);
+    }
+
+    //핀들 지도에 찍는 함수 + pinLocations 리스트 생성 및 그 리스트에 객체들 삽입
+    public void updatePin(ArrayList<ConfirmedData> pinInfos) {
+        if (currentMarkers != null) { //기존에 있던 pin들 다 제거
+            for (int i = 0; i < currentMarkers.size(); i++) {
+                currentMarkers.get(i).remove();
+            }
+            currentMarkers.clear();
+        } else {
+            currentMarkers = new ArrayList<Marker>();
+        }
+
+        if(pinLocations == null) {
+            pinLocations = new ArrayList<Location>();
+        }
+
+        ConfirmedData pinInfo;
+        Location pinLocation;
+        ChangerAddress changerAddress = new ChangerAddress(new Geocoder(this));
+        //반복문 돌리면서 pin마다 지도에 추가
+        for(int i = 0; i < pinInfos.size(); i++) {
+            pinInfo = pinInfos.get(i); //핀 하나 받음
+
+            //pin하나의 위경도 정보 받고, 그거를 pinLocations 리스트에 삽입
+            pinLocation = changerAddress.changeToLocation(pinInfo.address);
+            pinLocations.add(pinLocation);
+
+            //지도에 찍을 pin에 필요한 정보들 넣기
+            LatLng pinLatLng = new LatLng( pinLocation.getLatitude(),  pinLocation.getLongitude());
+            MarkerOptions markerOptions = new MarkerOptions();
+            markerOptions.position(pinLatLng);
+            markerOptions.title(pinInfo.address);
+            markerOptions.snippet(pinInfo.toString());
+            markerOptions.draggable(true);
+
+            //marker를 실제로 지도에 찍고, 그 marker를 currrentMarkers 리스트에 삽입
+            currentMarker = map.addMarker(markerOptions);
+            currentMarkers.add(currentMarker);
+        }
+//        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentLatLng);
+//        map.moveCamera(cameraUpdate);
+
     }
 
     //좌표->주소 변환
