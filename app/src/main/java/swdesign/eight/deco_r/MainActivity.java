@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     Location mCurrentLocation;
     LatLng currentPosition = null;
+    
 
     FusedLocationProviderClient mFusedLocationClient;
     LocationRequest locationRequest;//location Request Class
