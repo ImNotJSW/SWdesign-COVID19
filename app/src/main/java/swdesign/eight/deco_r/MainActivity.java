@@ -1,7 +1,6 @@
 package swdesign.eight.deco_r;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
@@ -17,7 +16,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
@@ -27,16 +25,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.Manifest;
-import android.os.Handler;
 import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -56,10 +50,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, ActivityCompat.OnRequestPermissionsResultCallback {
@@ -96,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //Setting 값
     SharedPreferences settingValueStorage;
-    final static String storageKey = "lslelxl";
+    final static String storageKey = "SetValue";
     int alarmType;
     double circleSize;
     int updateIntervalHour;
@@ -409,8 +401,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Log.d("locationCallback - ", "onLocationResult : " + markerSnippet);
 
 
-                //단 한번만 현재 위치로 카메라 자동 이동
+                //단 한번만 실행되는 부분
                 if (currentMoved == false) {
+                    //현재 위치로 카메라 자동 이동
                     Log.d("locationCallback - ", "move To My Position");
                     CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentPosition);
                     map.moveCamera(cameraUpdate);
@@ -419,8 +412,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     //checkAlarmTrigger()에 필요한 정보 초기화
                     distanceCalculator = new DistanceCalculator();
                     before_entered = false;
-                    is_entered = distanceCalculator.compareLocation(pinLocations, location, circleSize);
                 }
+
+                //확진자 장소로부터의 거리 감시
+                is_entered = distanceCalculator.compareLocation(pinLocations, location, circleSize);
 
                 //현재 위치에 반경원 생성하고 이동
                 updateCircle(location);
@@ -459,7 +454,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             //startActivity(i);
             before_entered = is_entered;
         }
-        is_entered = distanceCalculator.compareLocation(pinLocations, location, circleSize);
     }
 
     public void showNoti(boolean is_entered) {
@@ -615,41 +609,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
-    //좌표->주소 변환
-    public String getCurrentAddress(LatLng latlng) {
-
-        //지오코더... GPS를 주소로 변환
-        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
-
-        List<Address> addresses;
-
-        try {
-
-            addresses = geocoder.getFromLocation(
-                    latlng.latitude,
-                    latlng.longitude,
-                    1);
-        } catch (IOException ioException) {
-            //네트워크 문제
-            Toast.makeText(this, "지오코더 서비스 사용불가", Toast.LENGTH_LONG).show();
-            return "지오코더 서비스 사용불가";
-        } catch (IllegalArgumentException illegalArgumentException) {
-            Toast.makeText(this, "잘못된 GPS 좌표", Toast.LENGTH_LONG).show();
-            return "잘못된 GPS 좌표";
-
-        }
-
-
-        if (addresses == null || addresses.size() == 0) {
-            Toast.makeText(this, "주소 미발견", Toast.LENGTH_LONG).show();
-            return "주소 미발견";
-
-        } else {
-            Address address = addresses.get(0);
-            return address.getAddressLine(0).toString();
-        }
-
-    }
+//    //좌표->주소 변환
+//    public String getCurrentAddress(LatLng latlng) {
+//
+//        //지오코더... GPS를 주소로 변환
+//        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+//
+//        List<Address> addresses;
+//
+//        try {
+//
+//            addresses = geocoder.getFromLocation(
+//                    latlng.latitude,
+//                    latlng.longitude,
+//                    1);
+//        } catch (IOException ioException) {
+//            //네트워크 문제
+//            Toast.makeText(this, "지오코더 서비스 사용불가", Toast.LENGTH_LONG).show();
+//            return "지오코더 서비스 사용불가";
+//        } catch (IllegalArgumentException illegalArgumentException) {
+//            Toast.makeText(this, "잘못된 GPS 좌표", Toast.LENGTH_LONG).show();
+//            return "잘못된 GPS 좌표";
+//
+//        }
+//
+//
+//        if (addresses == null || addresses.size() == 0) {
+//            Toast.makeText(this, "주소 미발견", Toast.LENGTH_LONG).show();
+//            return "주소 미발견";
+//
+//        } else {
+//            Address address = addresses.get(0);
+//            return address.getAddressLine(0).toString();
+//        }
+//
+//    }
 
     //--단순 Boolean
     public boolean checkLocationServicesStatus() {
