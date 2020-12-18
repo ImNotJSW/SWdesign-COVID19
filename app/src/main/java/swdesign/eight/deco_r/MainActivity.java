@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //Setting 값
     SharedPreferences settingValueStorage;
-    final static String storageKey = "lslelxl";
+    final static String storageKey = "SetValue";
     int alarmType;
     double circleSize;
     int updateIntervalHour;
