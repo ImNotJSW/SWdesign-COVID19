@@ -1,6 +1,7 @@
 # SWdesign-COVID19
 Project for develop COVID-19 alarm application 
 
+팀미팅 12/14(모두 참석) 
 
 안드로이드 프로젝트 추가12/15 배진성
 
