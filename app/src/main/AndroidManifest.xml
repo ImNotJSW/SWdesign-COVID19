@@ -35,7 +35,7 @@
 
         <meta-data
             android:name="com.google.android.maps.v2.API_KEY"
-            android:value="AIzaSyAA62Y_m_z8K369HsIIeokmaK_2_U6jQdo" />
+            android:value="AIzaSyA1AfyO6Dt67ALv1SfBeFscNGrMF29wIuw" />
 
         <meta-data
             android:name="com.google.android.gms.version"
@@ -48,6 +48,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".SettingActivity"
+            android:label="설정"
+            android:theme="@style/Theme.AppCompat.Light.Dialog"
+            />
+
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

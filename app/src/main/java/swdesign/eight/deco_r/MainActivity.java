@@ -1,6 +1,7 @@
 package swdesign.eight.deco_r;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -8,6 +9,7 @@ import androidx.core.content.ContextCompat;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
@@ -20,6 +22,7 @@ import android.os.Looper;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
     private static final int GPS_ENABLE_REQUEST_CODE = 2001;
     private static final int LOCATION_PERMISSIONS_REQUEST_CODE = 100;
-    public static int circleSize = 2;
+    //public static int circleSize = 2;
 
 
     //map (logical)
@@ -79,7 +82,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     Location location;
     boolean currentMoved = false;
 
-
+    //Setting 값
+    SharedPreferences settingValueStorage;
+    final static String storageKey = "lslelxl";
+    int alarmType;
+    double circleSize;
+    int updateIntervalHour;
 
 
     @Override
@@ -89,7 +97,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         mLayout = findViewById(R.id.layout_main);
 
+        //저장된 셋팅값을 불러옵니다.
+        settingValueStorage = getSharedPreferences(storageKey, MODE_PRIVATE);
+        alarmType = settingValueStorage.getInt("alarmType", 3/*기본값 : 소리*/);
+        circleSize = settingValueStorage.getFloat("circleSize", 300.0f);
+        updateIntervalHour = settingValueStorage.getInt("updateInterval", 12);
+
+        //세팅 버튼에 대한 클릭 리스너 정의
+        Button settingBtn = findViewById(R.id.settingBtn);
+        settingBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this, SettingActivity.class);
+                intent.putExtra("alarmType", alarmType);
+                intent.putExtra("circleSize", circleSize);
+                intent.putExtra("updateInterval", updateIntervalHour);
+                startActivityForResult(intent, 101);
+            }
+        });
+
         //크롤러로부터 확진장소 데이터를 받습니다.
+        Crawler.updateIntervalHour = updateIntervalHour; //(크롤러 클래스에 직접 갱신 시간 전달)
         Crawler coronaCrawler = new Crawler(this);
         confirmedDataList = coronaCrawler.getConfirmedDataList();
         crawlingThread = coronaCrawler.crawlingThread;
@@ -192,6 +220,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.moveCamera(cameraUpdate);
 
     }
+
     private void requestLocationPermission() {
         //1. 사용자가 퍼미션 거부를 한 적이 있는 경우에는
         if (ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[0])) {
@@ -203,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 @Override
                 public void onClick(View view) {
                     //3. 사용자에 퍼미션 요청을 합니다. 요청 결과는 onRequestPermissionResult에서 수신됩니다.
-                    ActivityCompat.requestPermissions( MainActivity.this, REQUIRED_PERMISSIONS, LOCATION_PERMISSIONS_REQUEST_CODE);
+                    ActivityCompat.requestPermissions(MainActivity.this, REQUIRED_PERMISSIONS, LOCATION_PERMISSIONS_REQUEST_CODE);
                 }
             }).show();
 
@@ -211,9 +240,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             //4. 사용자가 퍼미션 거부를 한 적이 없는 경우에는 퍼미션 요청을 바로 합니다.
             // 요청 결과는 onRequestPermissionResult에서 수신됩니다.
-            ActivityCompat.requestPermissions( this, REQUIRED_PERMISSIONS, LOCATION_PERMISSIONS_REQUEST_CODE);
+            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, LOCATION_PERMISSIONS_REQUEST_CODE);
         }
     }
+
     private void startLocationUpdates() {
 
         //먼저, GPS가 실행되어 있는지 확인합니다.
@@ -237,7 +267,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
     }
-        private void showDialogForLocationServiceSetting() {
+
+    private void showDialogForLocationServiceSetting() {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
         builder.setTitle("위치 서비스 비활성화");
@@ -261,7 +292,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         builder.create().show();
     }
 
-        LocationCallback locationCallback = new LocationCallback() {
+    LocationCallback locationCallback = new LocationCallback() {
         @Override
         public void onLocationResult(LocationResult locationResult) {
             //이 콜백은 startLocationUpdates 메소드 내의 Looper에 의해 반복됨
@@ -362,7 +393,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // 반경 원
         CircleOptions circleOptions = new CircleOptions().center(currentLatLng) //원점
-                .radius(500)      //반지름 단위 : m(나중: 나중에 설정 클래스의 get으로 이 반지름 받아야됨)
+                .radius(circleSize)      //반지름 단위 : m(나중: 나중에 설정 클래스의 get으로 이 반지름 받아야됨)
                 .strokeWidth(0f)  //선너비 0f : 선없음
                 .fillColor(Color.parseColor("#55FE9A2E")); //배경색
 
@@ -384,7 +415,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             currentMarkers = new ArrayList<Marker>();
         }
 
-        if(pinLocations == null) {
+        if (pinLocations == null) {
             pinLocations = new ArrayList<Location>();
         }
 
@@ -392,7 +423,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Location pinLocation;
         ChangerAddress changerAddress = new ChangerAddress(new Geocoder(this));
         //반복문 돌리면서 pin마다 지도에 추가
-        for(int i = 0; i < pinInfos.size(); i++) {
+        for (int i = 0; i < pinInfos.size(); i++) {
             pinInfo = pinInfos.get(i); //핀 하나 받음
 
             //pin하나의 위경도 정보 받고, 그거를 pinLocations 리스트에 삽입
@@ -400,7 +431,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             pinLocations.add(pinLocation);
 
             //지도에 찍을 pin에 필요한 정보들 넣기
-            LatLng pinLatLng = new LatLng( pinLocation.getLatitude(),  pinLocation.getLongitude());
+            LatLng pinLatLng = new LatLng(pinLocation.getLatitude(), pinLocation.getLongitude());
             MarkerOptions markerOptions = new MarkerOptions();
             markerOptions.position(pinLatLng);
             markerOptions.title(pinInfo.address);
@@ -459,6 +490,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
                 || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
     }
+
     private boolean checkLocationPermissionPermitted() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -466,31 +498,47 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     //--결과 메소드들
+    //세팅창에서, 정상적인 값을 입력하여 설정값이 바뀌는 경우 아래 메소드가 호출됨
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        switch (requestCode) {
+        if (requestCode == GPS_ENABLE_REQUEST_CODE) {
+            //사용자가 GPS 활성 시켰는지 검사
+            if (checkLocationServicesStatus()) {
+                Log.d("onActivityResult-", "onActivityResult : GPS 활성화 되있음");
 
-            case GPS_ENABLE_REQUEST_CODE:
+                return;
+            }
+        }
 
-                //사용자가 GPS 활성 시켰는지 검사
-                if (checkLocationServicesStatus()) {
+        if (resultCode == 101) {
+            if (data.getIntExtra("updateInterval", 0) == 0)
+                //설정 엑티비티에서 설정 변경이 없던 경우
+                return;
+            else {
+                //설정 엑티비티에서 설정 변경이 된 경우 : 설정 엑티비티에서 저장된 값을 불러와 적용
+                alarmType = data.getIntExtra("alarmType", 3);
+                circleSize = data.getDoubleExtra("circleSize", 300.0);
+                updateIntervalHour = data.getIntExtra("updateInterval", 12);
+                //+ 변경된 설정 값을 디스크에 저장하기.
+                SharedPreferences.Editor settingEditor = settingValueStorage.edit();
+                settingEditor.putInt("alarmType", alarmType);
+                settingEditor.putFloat("circleSize", (float) circleSize);
+                settingEditor.putInt("updateInterval", updateIntervalHour);
+                settingEditor.commit();
 
-                        Log.d("onActivityResult-", "onActivityResult : GPS 활성화 되있음");
-
-                        return;
-
-                }
-
-                break;
+                //테스트용
+                //String resultString = alarmType + " " + circleSize + " " + updateIntervalHour;
+                //Toast.makeText(this, resultString, Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int permsRequestCode, @NonNull String[] permissions, @NonNull int[] grandResults) {
 
-        if ( permsRequestCode == LOCATION_PERMISSIONS_REQUEST_CODE) {
+        if (permsRequestCode == LOCATION_PERMISSIONS_REQUEST_CODE) {
 
             // 요청 코드가 LOCATION_PERMISSIONS_REQUEST_CODE 이면
 
@@ -534,6 +582,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
+
+
+
 
 }
 
