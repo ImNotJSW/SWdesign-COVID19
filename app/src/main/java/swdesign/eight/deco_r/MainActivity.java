@@ -3,9 +3,14 @@ package swdesign.eight.deco_r;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
 import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -14,9 +19,16 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.Manifest;
+import android.os.Handler;
 import android.os.Looper;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
@@ -47,6 +59,7 @@ import java.util.List;
 import java.util.Locale;
 
 
+
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, ActivityCompat.OnRequestPermissionsResultCallback {
     //needed Permissions
     final static String[] REQUIRED_PERMISSIONS = {
@@ -55,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     };
     private static final int GPS_ENABLE_REQUEST_CODE = 2001;
     private static final int LOCATION_PERMISSIONS_REQUEST_CODE = 100;
-    public static int circleSize = 2;
+    public static double circleRadius = 500; //미터 단위
 
 
     //map (logical)
@@ -76,10 +89,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     FusedLocationProviderClient mFusedLocationClient;
     LocationRequest locationRequest;//location Request Class
-    Location location;
+    Location location; //유저 위치
     boolean currentMoved = false;
 
+    AlarmThread thread;
 
+    int alarm_type = 2;//1은 무음 2는 진동 3은 소리
+
+    boolean before_entered;//전에 들어와있던 신호
+    boolean is_entered;//distance calculator에서 받아오기
+
+    DistanceCalculator distanceCalculator;
+
+    NotificationManager manager;
+
+    private static String CHANNEL_ID = "channer1";
+    private static String CHANNEL_NAME = "channer1";
 
 
     @Override
@@ -155,17 +180,95 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             map.setMyLocationEnabled(true);
         }
 
-
         map.getUiSettings().setMyLocationButtonEnabled(true);
-
 
         //확대 비율 조정 (오동작 위험 있음)
         map.animateCamera(CameraUpdateFactory.zoomTo(15));
 
+        //- 전달받은 방문장소 데이터로 지도에 핀을 표시하는 메소드를 호출합니다.(+pinLocations 리스트에 객체들 삽입)
+        updatePin(confirmedDataList); //이걸 startLocationUpdates()에 집어넣은 다음 service클래스에startLocationUpdates()의 일부로직(Looper?)넣는게 어때?
 
-        //- 전달받은 방문장소 데이터로 지도에 핀을 표시하는 메소드를 호출합니다.
-        updatePin(confirmedDataList);
+        //마커의 정보창 클릭 리스너
+//        GoogleMap.OnInfoWindowClickListener infoWindowClickListener = new GoogleMap.OnInfoWindowClickListener() {
+//            @Override
+//            public void onInfoWindowClick(Marker marker) {
+//                String markerId = marker.getId();
+//
+//                marker.
+//                Intent intent = new Intent(MainActivity.this, PopUpActivity.class);
+//                intent.putExtra("data", );
+//                startActivityForResult(intent, 1);
+//
+//                //Toast.makeText(MainActivity.this, "정보창 클릭 Marker ID : "+markerId, Toast.LENGTH_SHORT).show();
+//            }
+//        };
+
+//        //쓰레드 실행에 필요한 정보 초기화
+//        distanceCalculator = new DistanceCalculator();
+//        before_entered = false;
+//        is_entered = distanceCalculator.compareLocation(pinLocations, location, circleRadius);
+
+//        //거리계산 후 알림을 하는 쓰레드 실행
+//        myServiceHandler handler = new myServiceHandler();
+//        thread = new AlarmThread(handler);
+//        thread.start();
     }
+
+//    class myServiceHandler extends Handler {
+//        @Override
+//        public void handleMessage(android.os.Message msg) {
+//            //나중: alarm_type을 설정 클래스에서 get해오는 부분
+//            if (before_entered != is_entered) { //반경원 상태변화 발생 시(반경원 안에 핀이 들어오거나, 나갔을 경우)
+//                if (alarm_type == 2) { //알림 타입이 진동일 경우
+//                    Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                        vibrator.vibrate(VibrationEffect.createOneShot(1000, 19));
+//                    } else {
+//                        vibrator.vibrate(1000);
+//                    }
+//                }
+//                else if (alarm_type == 3) { //알림 타입이 소리일경우
+//                    Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+//                    Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), uri);
+//                    ringtone.play();
+//                }
+//                showNoti(is_entered); //푸시 알림 진행
+//                //Intent i = new Intent(SecondActivity.this, ResultActivity.class);
+//                //화면간 데이터 전달
+//                //i.putExtra("score", score);
+//                //startActivity(i);
+//                before_entered = is_entered;
+//            }
+//            is_entered = distanceCalculator.compareLocation(pinLocations, location, circleRadius);
+//        }
+//
+//        public void showNoti(boolean is_entered) {
+//
+//            manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+//            NotificationCompat.Builder builder = null; //상단알림 프로그램 객체 생성
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {//버전 비교를 통해 알림 코드생성
+//                manager.createNotificationChannel(new NotificationChannel(
+//                        CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW
+//                ));
+//                builder = new NotificationCompat.Builder(MainActivity.this, CHANNEL_ID);
+//            } else {
+//                builder = new NotificationCompat.Builder(MainActivity.this);
+//            }
+//
+//            if(is_entered) { //핀이 반경원안에 들어왔을 경우
+//                builder.setContentTitle("위험합니다");//알림제목
+//                builder.setContentText("확진자 반경 내에 접근했습니다");//알림내용
+//            } else { //핀이 반경원안에서 나갔을 경우
+//                builder.setContentTitle("안전합니다");//알림제목
+//                builder.setContentText("확진자 반경 내에서 벗어났습니다");//알림내용
+//            }
+//
+//            builder.setSmallIcon(android.R.drawable.ic_menu_view);
+//            Notification noti = builder.build();
+//
+//            manager.notify(1, noti);
+//        }
+//    }
 
     //----------------------------onMapReady의 메소드 실행 순서로 배치---------------------------------
 
@@ -233,7 +336,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             //현재 위치를 지속적으로 갱신하기 위한 Looper를 설정합니다.
             mFusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
-
         }
 
     }
@@ -285,10 +387,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentPosition);
                     map.moveCamera(cameraUpdate);
                     currentMoved = true;
+
+                    //checkAlarmTrigger()에 필요한 정보 초기화
+                    distanceCalculator = new DistanceCalculator();
+                    before_entered = false;
+                    is_entered = distanceCalculator.compareLocation(pinLocations, location, circleRadius);
                 }
 
                 //현재 위치에 반경원 생성하고 이동
                 updateCircle(location);
+
+                //핀이 반경원 안에 들어왔는지 검사 및 알림 실행
+                checkAlarmTrigger();
 
                 mCurrentLocation = location;
 
@@ -297,6 +407,59 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     };
 
+
+    public void checkAlarmTrigger() {
+        //나중: alarm_type을 설정 클래스에서 get해오는 부분
+        if (before_entered != is_entered) { //반경원 상태변화 발생 시(반경원 안에 핀이 들어오거나, 나갔을 경우)
+            if (alarm_type == 2) { //알림 타입이 진동일 경우
+                Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(1000, 19));
+                } else {
+                    vibrator.vibrate(1000);
+                }
+            }
+            else if (alarm_type == 3) { //알림 타입이 소리일경우
+                Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+                Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), uri);
+                ringtone.play();
+            }
+            showNoti(is_entered); //푸시 알림 진행
+            //Intent i = new Intent(SecondActivity.this, ResultActivity.class);
+            //화면간 데이터 전달
+            //i.putExtra("score", score);
+            //startActivity(i);
+            before_entered = is_entered;
+        }
+        is_entered = distanceCalculator.compareLocation(pinLocations, location, circleRadius);
+    }
+
+    public void showNoti(boolean is_entered) {
+
+        manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        NotificationCompat.Builder builder = null; //상단알림 프로그램 객체 생성
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {//버전 비교를 통해 알림 코드생성
+            manager.createNotificationChannel(new NotificationChannel(
+                    CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW
+            ));
+            builder = new NotificationCompat.Builder(MainActivity.this, CHANNEL_ID);
+        } else {
+            builder = new NotificationCompat.Builder(MainActivity.this);
+        }
+
+        if(is_entered) { //핀이 반경원안에 들어왔을 경우
+            builder.setContentTitle("위험합니다");//알림제목
+            builder.setContentText("확진자 반경 내에 접근했습니다");//알림내용
+        } else { //핀이 반경원안에서 나갔을 경우
+            builder.setContentTitle("안전합니다");//알림제목
+            builder.setContentText("확진자 반경 내에서 벗어났습니다");//알림내용
+        }
+
+        builder.setSmallIcon(android.R.drawable.ic_menu_view);
+        Notification noti = builder.build();
+
+        manager.notify(1, noti);
+    }
 
     //-----------------------------onMapReady의 메소드 실행 순서로 배치 End----------------------------
 
@@ -330,6 +493,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        thread.stopForever();
+        thread = null;//쓰레기 값을 만들어서 빠르게 회수하라고 null을 넣어줌
+    }
 
     //마커 생성?
 //    public void setCurrentLocation(Location location, String markerTitle, String markerSnippet) {
@@ -362,15 +532,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // 반경 원
         CircleOptions circleOptions = new CircleOptions().center(currentLatLng) //원점
-                .radius(500)      //반지름 단위 : m(나중: 나중에 설정 클래스의 get으로 이 반지름 받아야됨)
+                .radius(circleRadius)      //반지름 단위 : m(나중: 나중에 설정 클래스의 get으로 이 반지름 받아야됨)
                 .strokeWidth(0f)  //선너비 0f : 선없음
                 .fillColor(Color.parseColor("#55FE9A2E")); //배경색
 
         //현재 반경원 저장
         currentCircle = map.addCircle(circleOptions);
-
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentLatLng);
-        map.moveCamera(cameraUpdate);
     }
 
     //핀들 지도에 찍는 함수 + pinLocations 리스트 생성 및 그 리스트에 객체들 삽입
@@ -410,6 +577,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             //marker를 실제로 지도에 찍고, 그 marker를 currrentMarkers 리스트에 삽입
             currentMarker = map.addMarker(markerOptions);
             currentMarkers.add(currentMarker);
+
+            //자세한 정보창을 마커에 성정
+            View infoWindow = getLayoutInflater().inflate(R.layout.popup, null);
+            PopUpAdapter popUpAdapter = new PopUpAdapter(infoWindow, pinInfo.toString());
+            map.setInfoWindowAdapter(popUpAdapter);
+
         }
 //        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentLatLng);
 //        map.moveCamera(cameraUpdate);
