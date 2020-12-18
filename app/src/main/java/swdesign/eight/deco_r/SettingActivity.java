@@ -21,7 +21,7 @@ public class SettingActivity extends AppCompatActivity {
     RadioButton.OnClickListener alarmSelectClickListener = new RadioButton.OnClickListener() {
         @Override
         public void onClick(View view) {
-            Toast.makeText(SettingActivity.this, "" + muteBtn.isChecked() + vibrationBtn.isChecked() + soundBtn.isChecked(), Toast.LENGTH_SHORT).show();
+            //Toast.makeText(SettingActivity.this, "" + muteBtn.isChecked() + vibrationBtn.isChecked() + soundBtn.isChecked(), Toast.LENGTH_SHORT).show();
         }
     };
 
@@ -89,7 +89,7 @@ public class SettingActivity extends AppCompatActivity {
                 //원 범위 입력 검사 (숫자 범위, 입력 여부)
                 try {
                     double circleSize = Double.parseDouble(wanted_circleSize);
-                    if (circleSize <= 0 || circleSize > 1000)
+                    if (circleSize <= 0 || circleSize > 10000)
                         throw new Exception("범위 초과");
                     returnIntent.putExtra("circleSize", circleSize);
                 } catch (Exception e) {

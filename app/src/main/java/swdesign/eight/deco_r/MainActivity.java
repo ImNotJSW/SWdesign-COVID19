@@ -102,8 +102,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     int updateIntervalHour;
     //AlarmThread thread;
 
-    int alarm_type = 2;//1은 무음 2는 진동 3은 소리
-
     boolean before_entered;//전에 들어와있던 신호
     boolean is_entered;//distance calculator에서 받아오기
 
@@ -179,9 +177,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             str += data.toString() + "\n";
         }
 
-        TextView textView = findViewById(R.id.text);
-        textView.setMovementMethod(new ScrollingMovementMethod());
-        textView.setText(str);
+        //TextView textView = findViewById(R.id.text);
+        //textView.setMovementMethod(new ScrollingMovementMethod());
+        //textView.setText(str);
 
     }
 
@@ -245,9 +243,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //    class myServiceHandler extends Handler {
 //        @Override
 //        public void handleMessage(android.os.Message msg) {
-//            //나중: alarm_type을 설정 클래스에서 get해오는 부분
+//            //나중: alarmType을 설정 클래스에서 get해오는 부분
 //            if (before_entered != is_entered) { //반경원 상태변화 발생 시(반경원 안에 핀이 들어오거나, 나갔을 경우)
-//                if (alarm_type == 2) { //알림 타입이 진동일 경우
+//                if (alarmType == 2) { //알림 타입이 진동일 경우
 //                    Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 //                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 //                        vibrator.vibrate(VibrationEffect.createOneShot(1000, 19));
@@ -255,7 +253,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                        vibrator.vibrate(1000);
 //                    }
 //                }
-//                else if (alarm_type == 3) { //알림 타입이 소리일경우
+//                else if (alarmType == 3) { //알림 타입이 소리일경우
 //                    Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 //                    Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), uri);
 //                    ringtone.play();
@@ -421,7 +419,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     //checkAlarmTrigger()에 필요한 정보 초기화
                     distanceCalculator = new DistanceCalculator();
                     before_entered = false;
-                    is_entered = distanceCalculator.compareLocation(pinLocations, location, circleRadius);
+                    is_entered = distanceCalculator.compareLocation(pinLocations, location, circleSize);
                 }
 
                 //현재 위치에 반경원 생성하고 이동
@@ -439,9 +437,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
     public void checkAlarmTrigger() {
-        //나중: alarm_type을 설정 클래스에서 get해오는 부분
+        //나중: alarmType을 설정 클래스에서 get해오는 부분
         if (before_entered != is_entered) { //반경원 상태변화 발생 시(반경원 안에 핀이 들어오거나, 나갔을 경우)
-            if (alarm_type == 2) { //알림 타입이 진동일 경우
+            if (alarmType == 2) { //알림 타입이 진동일 경우
                 Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(1000, 19));
@@ -449,7 +447,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     vibrator.vibrate(1000);
                 }
             }
-            else if (alarm_type == 3) { //알림 타입이 소리일경우
+            else if (alarmType == 3) { //알림 타입이 소리일경우
                 Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                 Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), uri);
                 ringtone.play();
