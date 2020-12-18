@@ -24,8 +24,10 @@ public class DistanceCalculator {
             double distance = userLocation.distanceTo(pinLocation);
             if (distance < circleRadius) {
                 entered = true;
+                return entered;
             }
         }
+        entered = false;
         return entered;
     }
 }

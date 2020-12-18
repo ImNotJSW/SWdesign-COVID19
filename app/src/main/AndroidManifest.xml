@@ -27,7 +27,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
+        android:theme="@style/Theme.AppCompat.NoActionBar"
         android:usesCleartextTraffic="true">
 
         <uses-library android:name="com.google.android.maps" />
@@ -37,7 +37,7 @@
 
         <meta-data
             android:name="com.google.android.maps.v2.API_KEY"
-            android:value="AIzaSyA1AfyO6Dt67ALv1SfBeFscNGrMF29wIuw" />
+            android:value="AIzaSyAA62Y_m_z8K369HsIIeokmaK_2_U6jQdo" />
 
         <meta-data
             android:name="com.google.android.gms.version"
