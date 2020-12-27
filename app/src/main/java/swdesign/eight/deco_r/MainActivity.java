@@ -31,6 +31,7 @@ import android.os.Vibrator;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
@@ -51,11 +52,13 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, ActivityCompat.OnRequestPermissionsResultCallback {
-    //needed Permissions
+    //needed Permissions 진성 VER
     final static String[] REQUIRED_PERMISSIONS = {
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
@@ -67,13 +70,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //map (logical)
     GoogleMap map;
-    Marker currentMarker = null;
     Circle currentCircle = null;
 
-    Thread crawlingThread;
-    ArrayList<ConfirmedData> confirmedDataList;
-    ArrayList<Marker> currentMarkers = null;
-    ArrayList<Location> pinLocations = null;
+    Thread loadThread;
+    ArrayList<MarkerOptions> currentMarkers = null;
+    LinkedList<Location> pinCoordinates = null;
 
     //entire layouts
     private View mLayout;
@@ -87,11 +88,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     boolean currentMoved = false;
 
     //Setting 값
-    SharedPreferences settingValueStorage;
-    final static String storageKey = "SetValue";
-    int alarmType;
-    double circleSize;
-    int updateIntervalHour;
+//    SharedPreferences settingValueStorage;
+//    final static String storageKey = "SetValue";
+//    int alarmType;
+//    double circleSize;
+//    int updateIntervalHour;
     //AlarmThread thread;
 
     boolean before_entered;//전에 들어와있던 신호
@@ -104,6 +105,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private static String CHANNEL_ID = "channer1";
     private static String CHANNEL_NAME = "channer1";
 
+    Thread pinThread;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,10 +116,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mLayout = findViewById(R.id.layout_main);
 
         //저장된 셋팅값을 불러옵니다.
-        settingValueStorage = getSharedPreferences(storageKey, MODE_PRIVATE);
-        alarmType = settingValueStorage.getInt("alarmType", 3/*기본값 : 소리*/);
-        circleSize = settingValueStorage.getFloat("circleSize", 300.0f);
-        updateIntervalHour = settingValueStorage.getInt("updateInterval", 12);
+        AppMainData.loadSettingData(this);
+
+//        settingValueStorage = getSharedPreferences(storageKey, MODE_PRIVATE);
+//        alarmType = settingValueStorage.getInt("alarmType", 3/*기본값 : 소리*/);
+//        circleSize = settingValueStorage.getFloat("circleSize", 300.0f);
+//        updateIntervalHour = settingValueStorage.getInt("updateInterval", 12);
 
         //세팅 버튼에 대한 클릭 리스너 정의
         Button settingBtn = findViewById(R.id.settingBtn);
@@ -124,18 +129,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(MainActivity.this, SettingActivity.class);
-                intent.putExtra("alarmType", alarmType);
-                intent.putExtra("circleSize", circleSize);
-                intent.putExtra("updateInterval", updateIntervalHour);
+                intent.putExtra("alarmType", AppMainData.alarmType);
+                intent.putExtra("circleSize", AppMainData.circleSize);
+                intent.putExtra("updateInterval", AppMainData.updateIntervalHour);
                 startActivityForResult(intent, 101);
             }
         });
 
         //크롤러로부터 확진장소 데이터를 받습니다.
-        Crawler.updateIntervalHour = updateIntervalHour; //(크롤러 클래스에 직접 갱신 시간 전달)
-        Crawler coronaCrawler = new Crawler(this);
-        confirmedDataList = coronaCrawler.getConfirmedDataList();
-        crawlingThread = coronaCrawler.crawlingThread;
+        loadThread = AppMainData.loadConfirmedDataSet(this);
+
+//        Crawler.updateIntervalHour = AppMainData.updateIntervalHour; //(크롤러 클래스에 직접 갱신 시간 전달)
+//        Crawler coronaCrawler = new Crawler(this);
+//        confirmedDataList = coronaCrawler.getConfirmedDataList();
+//        crawlingThread = coronaCrawler.crawlingThread;
         //주의 : crawlingThread.join() 구문 이전에 이 ArrayList를 사용하면 에러가 발생함
 
 
@@ -153,32 +160,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
 
-        try { //onMapReady Method를 실행하기 전에, crawling 작업을 끝내야 onMapRead Method에서 핀 표시 가능.
-            crawlingThread.join(); //confirmedDataList
-        } catch (Exception e) {
-            Log.e("Thread join", "Thread join failed");
-        }
-
         mapFragment.getMapAsync(this);
         //-------onMapReady Method (콜백)으로 호출됨-------
-
-
-        //- 테스트 전용 코드 : 앱 화면 하단에 크롤링 결과를 표시
-        String str = new String();
-        for (ConfirmedData data : coronaCrawler.confirmedDataList) {
-            str += data.toString() + "\n";
-        }
-
-        //TextView textView = findViewById(R.id.text);
-        //textView.setMovementMethod(new ScrollingMovementMethod());
-        //textView.setText(str);
 
     }
 
 
     @Override
     public void onMapReady(final GoogleMap googleMap) {
-        //Oncreate로 부터 실행됨
+        //OnCreate로부터 실행됨
         Log.d("Googlemap", "onMapReady :");
 
         map = googleMap;
@@ -187,24 +177,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //일단 초기 위치를 대구광역시청으로 둡니다.
         setDefaultLocation();
 
+        //(우측 상단) 내 위치 버튼 활성화
+        map.getUiSettings().setMyLocationButtonEnabled(true);
+        // 확대 비율 조정 (오동작 위험 있음)
+        map.animateCamera(CameraUpdateFactory.zoomTo(15));
+
+        //전달받은 방문장소 데이터로 지도 찍을 핀 리스트를 만드는 메소드를 호출합니다. (핀을 지도에 찍는 것은 startLocationUpdates() 에서)
+        loadPinList();
+
         //퍼미션 관련 이슈를 조회합니다.
         if (checkLocationPermissionPermitted() == false)
             //장소 권한이 없다면 권한을 요청하고
             requestLocationPermission();
         else {
             //권한이 있다면 바로 현재 위치를 갱신하는 Looper를 실행하는 메소드와, 현재 위치를 표시하는 UI를 호출합니다.
-            //(권한이 없는 경우에도 권한을 승락할 경우, onRequestPermissionResult에서 아래 두 함수 모두 호출해줌)
+            //(권한이 없는 경우에도 권한을 승락할 경우 콜백되는 onRequestPermissionResult에서 아래 두 함수 모두 호출해줌)
             startLocationUpdates();
             map.setMyLocationEnabled(true);
         }
 
-        map.getUiSettings().setMyLocationButtonEnabled(true);
-
-        //확대 비율 조정 (오동작 위험 있음)
-        map.animateCamera(CameraUpdateFactory.zoomTo(15));
-
-        //- 전달받은 방문장소 데이터로 지도에 핀을 표시하는 메소드를 호출합니다.(+pinLocations 리스트에 객체들 삽입)
-        updatePin(confirmedDataList); //이걸 startLocationUpdates()에 집어넣은 다음 service클래스에startLocationUpdates()의 일부로직(Looper?)넣는게 어때?
 
         //마커의 정보창 클릭 리스너
 //        GoogleMap.OnInfoWindowClickListener infoWindowClickListener = new GoogleMap.OnInfoWindowClickListener() {
@@ -232,66 +223,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        thread.start();
     }
 
-//    class myServiceHandler extends Handler {
-//        @Override
-//        public void handleMessage(android.os.Message msg) {
-//            //나중: alarmType을 설정 클래스에서 get해오는 부분
-//            if (before_entered != is_entered) { //반경원 상태변화 발생 시(반경원 안에 핀이 들어오거나, 나갔을 경우)
-//                if (alarmType == 2) { //알림 타입이 진동일 경우
-//                    Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                        vibrator.vibrate(VibrationEffect.createOneShot(1000, 19));
-//                    } else {
-//                        vibrator.vibrate(1000);
-//                    }
-//                }
-//                else if (alarmType == 3) { //알림 타입이 소리일경우
-//                    Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-//                    Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), uri);
-//                    ringtone.play();
-//                }
-//                showNoti(is_entered); //푸시 알림 진행
-//                //Intent i = new Intent(SecondActivity.this, ResultActivity.class);
-//                //화면간 데이터 전달
-//                //i.putExtra("score", score);
-//                //startActivity(i);
-//                before_entered = is_entered;
-//            }
-//            is_entered = distanceCalculator.compareLocation(pinLocations, location, circleRadius);
-//        }
-//
-//        public void showNoti(boolean is_entered) {
-//
-//            manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-//            NotificationCompat.Builder builder = null; //상단알림 프로그램 객체 생성
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {//버전 비교를 통해 알림 코드생성
-//                manager.createNotificationChannel(new NotificationChannel(
-//                        CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_LOW
-//                ));
-//                builder = new NotificationCompat.Builder(MainActivity.this, CHANNEL_ID);
-//            } else {
-//                builder = new NotificationCompat.Builder(MainActivity.this);
-//            }
-//
-//            if(is_entered) { //핀이 반경원안에 들어왔을 경우
-//                builder.setContentTitle("위험합니다");//알림제목
-//                builder.setContentText("확진자 반경 내에 접근했습니다");//알림내용
-//            } else { //핀이 반경원안에서 나갔을 경우
-//                builder.setContentTitle("안전합니다");//알림제목
-//                builder.setContentText("확진자 반경 내에서 벗어났습니다");//알림내용
-//            }
-//
-//            builder.setSmallIcon(android.R.drawable.ic_menu_view);
-//            Notification noti = builder.build();
-//
-//            manager.notify(1, noti);
-//        }
-//    }
-
     //----------------------------onMapReady의 메소드 실행 순서로 배치---------------------------------
 
     public void setDefaultLocation() {
-
 
         //디폴트 위치, 대구광역시청
         LatLng DEFAULT_LOCATION = new LatLng(35.8713, 128.6017);
@@ -308,11 +242,64 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        markerOptions.draggable(true);
 //        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
 //        currentMarker = map.addMarker(markerOptions);
-
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(DEFAULT_LOCATION, 15);
         map.moveCamera(cameraUpdate);
 
     }
+    //핀들 지도에 찍는 함수 + pinCoordinates 리스트 생성 (쓰레드에 의한 비동기 실행)
+    public void loadPinList() {
+        pinThread = new Thread() {
+            @Override
+            public void run() {
+                // + 확진자 인접을 검사하는 메소드에 전달해야할 Location 리스트 생성
+                pinCoordinates = new LinkedList<Location>();
+
+
+                try { //확진자 데이터셋 쓰레드 처리가 끝나야 pin 생성 가능
+                    loadThread.join();
+                } catch (Exception e) {
+                    Log.e("pinThread : ", "Thread Interrupted");
+                }
+
+
+                currentMarkers = new ArrayList<>();
+                Iterator<ConfirmedData> lListItr = AppMainData.confirmedDataList.iterator();
+
+                //확진자 방문 장소를 순회하면서 pin을 만들어 지도에 추가
+                while (lListItr.hasNext()) {
+
+                    ConfirmedData nowData = lListItr.next();
+
+                    //지도의 찍을 pin에 필요한 정보를 넣기
+                    LatLng pinLatLng = new LatLng(nowData.getLatitude(), nowData.getLongitude());
+                    MarkerOptions markerOptions = new MarkerOptions();
+                    markerOptions.position(pinLatLng);
+                    //markerOptions.title(nowData.address);
+                    markerOptions.snippet(nowData.toString());
+                    markerOptions.draggable(true);
+
+
+                    //Location 리스트에 추가
+                    Location nowDataLoc = new Location("point");
+                    nowDataLoc.setLongitude(nowData.getLongitude());
+                    nowDataLoc.setLatitude(nowData.getLatitude());
+                    pinCoordinates.addLast(nowDataLoc);
+
+
+                    //marker를 리스트에 추가 (Marker 표시는 mainThread 밖에서 할 수 없음)
+                    currentMarkers.add(markerOptions);
+
+
+                }
+
+
+            }
+        };
+
+        pinThread.start();
+
+    }
+
     private void requestLocationPermission() {
         //1. 사용자가 퍼미션 거부를 한 적이 있는 경우에는
         if (ActivityCompat.shouldShowRequestPermissionRationale(this, REQUIRED_PERMISSIONS[0])) {
@@ -335,7 +322,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, LOCATION_PERMISSIONS_REQUEST_CODE);
         }
     }
-
     private void startLocationUpdates() {
 
         //먼저, GPS가 실행되어 있는지 확인합니다.
@@ -343,22 +329,51 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             Log.d("GPSUpdate", "startLocationUpdates : call showDialogForLocationServiceSetting");
             showDialogForLocationServiceSetting();
-        } else {
 
+        } else {
             if (checkLocationPermissionPermitted() == false) {
                 Log.d("GPSUpdate", "startLocationUpdates : 퍼미션 안가지고 있음");
                 return;
             }
 
-
             Log.d("GPSUpdate", "startLocationUpdates : call mFusedLocationClient.requestLocationUpdates");
+
+            //checkAlarmTrigger()에 필요한 정보 초기화
+            distanceCalculator = new DistanceCalculator();
+            before_entered = false;
+
+            //PinThread가 끝날 때까지 기다림 (아래 메소드 호출을 위한 필수 조건)
+            boolean threadEnd = false;
+            while (true) {
+                try {
+                    pinThread.join();
+                    threadEnd = true;
+                } catch (Exception e) { }
+
+                if (threadEnd == true)
+                    break;
+            }
+            Log.e("GPSUpdate", "pinThread join");
+
+
+
+            for (MarkerOptions marker : currentMarkers) {
+                //지도에 핀을 표시합니다.
+                map.addMarker(marker);
+
+                //자세한 (마커 터치 시 뜨는) 정보창을 마커에 추가시킵니다.
+                View infoWindow = getLayoutInflater().inflate(R.layout.popup, null);
+                PopUpAdapter popUpAdapter = new PopUpAdapter(infoWindow, marker.getSnippet());
+                map.setInfoWindowAdapter(popUpAdapter);
+            }
+
+
 
             //현재 위치를 지속적으로 갱신하기 위한 Looper를 설정합니다.
             mFusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
         }
 
     }
-
     private void showDialogForLocationServiceSetting() {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
@@ -372,6 +387,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Intent callGPSSettingIntent
                         = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                 startActivityForResult(callGPSSettingIntent, GPS_ENABLE_REQUEST_CODE);
+                Toast.makeText(MainActivity.this, "GPS가 설정되었습니다. 혹여나 안될경우 앱을 재시작해보세요.", Toast.LENGTH_LONG).show();
             }
         });
         builder.setNegativeButton("취소", new DialogInterface.OnClickListener() {
@@ -382,6 +398,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
         builder.create().show();
     }
+
+
 
     LocationCallback locationCallback = new LocationCallback() {
         @Override
@@ -401,21 +419,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Log.d("locationCallback - ", "onLocationResult : " + markerSnippet);
 
 
-                //단 한번만 실행되는 부분
+                //처음 Looper 진입 시, 현재 위치로 지도를 움직이게 합니다.
                 if (currentMoved == false) {
                     //현재 위치로 카메라 자동 이동
                     Log.d("locationCallback - ", "move To My Position");
                     CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentPosition);
                     map.moveCamera(cameraUpdate);
                     currentMoved = true;
-
-                    //checkAlarmTrigger()에 필요한 정보 초기화
-                    distanceCalculator = new DistanceCalculator();
-                    before_entered = false;
                 }
 
                 //확진자 장소로부터의 거리 감시
-                is_entered = distanceCalculator.compareLocation(pinLocations, location, circleSize);
+                is_entered = distanceCalculator.compareLocation(pinCoordinates, location, AppMainData.circleSize);
 
                 //현재 위치에 반경원 생성하고 이동
                 updateCircle(location);
@@ -434,7 +448,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void checkAlarmTrigger() {
         //나중: alarmType을 설정 클래스에서 get해오는 부분
         if (before_entered != is_entered) { //반경원 상태변화 발생 시(반경원 안에 핀이 들어오거나, 나갔을 경우)
-            if (alarmType == 2) { //알림 타입이 진동일 경우
+            if (AppMainData.alarmType == 2) { //알림 타입이 진동일 경우
                 Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     vibrator.vibrate(VibrationEffect.createOneShot(1000, 19));
@@ -442,7 +456,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     vibrator.vibrate(1000);
                 }
             }
-            else if (alarmType == 3) { //알림 타입이 소리일경우
+            else if (AppMainData.alarmType == 3) { //알림 타입이 소리일경우
                 Uri uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
                 Ringtone ringtone = RingtoneManager.getRingtone(getApplicationContext(), uri);
                 ringtone.play();
@@ -472,7 +486,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if(is_entered) { //핀이 반경원안에 들어왔을 경우
             builder.setContentTitle("위험합니다");//알림제목
             builder.setContentText("확진자 반경 내에 접근했습니다");//알림내용
-        } else { //핀이 반경원안에서 나갔을 경우
+        } else { //핀이 반경원 안에서 나갔을 경우
             builder.setContentTitle("안전합니다");//알림제목
             builder.setContentText("확진자 반경 내에서 벗어났습니다");//알림내용
         }
@@ -552,7 +566,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // 반경 원
         CircleOptions circleOptions = new CircleOptions().center(currentLatLng) //원점
-                .radius(circleSize)      //반지름 단위 : m(나중: 나중에 설정 클래스의 get으로 이 반지름 받아야됨)
+                .radius(AppMainData.circleSize)      //반지름 단위 : m(나중: 나중에 설정 클래스의 get으로 이 반지름 받아야됨)
                 .strokeWidth(0f)  //선너비 0f : 선없음
                 .fillColor(Color.parseColor("#55FE9A2E")); //배경색
 
@@ -560,54 +574,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         currentCircle = map.addCircle(circleOptions);
     }
 
-    //핀들 지도에 찍는 함수 + pinLocations 리스트 생성 및 그 리스트에 객체들 삽입
-    public void updatePin(ArrayList<ConfirmedData> pinInfos) {
-        if (currentMarkers != null) { //기존에 있던 pin들 다 제거
-            for (int i = 0; i < currentMarkers.size(); i++) {
-                currentMarkers.get(i).remove();
-            }
-            currentMarkers.clear();
-        } else {
-            currentMarkers = new ArrayList<Marker>();
-        }
 
-        if (pinLocations == null) {
-            pinLocations = new ArrayList<Location>();
-        }
-
-        ConfirmedData pinInfo;
-        Location pinLocation;
-        ChangerAddress changerAddress = new ChangerAddress(new Geocoder(this));
-        //반복문 돌리면서 pin마다 지도에 추가
-        for (int i = 0; i < pinInfos.size(); i++) {
-            pinInfo = pinInfos.get(i); //핀 하나 받음
-
-            //pin하나의 위경도 정보 받고, 그거를 pinLocations 리스트에 삽입
-            pinLocation = changerAddress.changeToLocation(pinInfo.address);
-            pinLocations.add(pinLocation);
-
-            //지도에 찍을 pin에 필요한 정보들 넣기
-            LatLng pinLatLng = new LatLng(pinLocation.getLatitude(), pinLocation.getLongitude());
-            MarkerOptions markerOptions = new MarkerOptions();
-            markerOptions.position(pinLatLng);
-            markerOptions.title(pinInfo.address);
-            markerOptions.snippet(pinInfo.toString());
-            markerOptions.draggable(true);
-
-            //marker를 실제로 지도에 찍고, 그 marker를 currrentMarkers 리스트에 삽입
-            currentMarker = map.addMarker(markerOptions);
-            currentMarkers.add(currentMarker);
-
-            //자세한 정보창을 마커에 성정
-            View infoWindow = getLayoutInflater().inflate(R.layout.popup, null);
-            PopUpAdapter popUpAdapter = new PopUpAdapter(infoWindow, pinInfo.toString());
-            map.setInfoWindowAdapter(popUpAdapter);
-
-        }
 //        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLng(currentLatLng);
 //        map.moveCamera(cameraUpdate);
 
-    }
+
 
 //    //좌표->주소 변환
 //    public String getCurrentAddress(LatLng latlng) {
@@ -680,14 +651,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return;
             else {
                 //설정 엑티비티에서 설정 변경이 된 경우 : 설정 엑티비티에서 저장된 값을 불러와 적용
-                alarmType = data.getIntExtra("alarmType", 3);
-                circleSize = data.getDoubleExtra("circleSize", 300.0);
-                updateIntervalHour = data.getIntExtra("updateInterval", 12);
+                AppMainData.alarmType = data.getIntExtra("alarmType", 3);
+                AppMainData.circleSize = data.getDoubleExtra("circleSize", 300.0);
+                AppMainData.updateIntervalHour = data.getIntExtra("updateInterval", 12);
                 //+ 변경된 설정 값을 디스크에 저장하기.
-                SharedPreferences.Editor settingEditor = settingValueStorage.edit();
-                settingEditor.putInt("alarmType", alarmType);
-                settingEditor.putFloat("circleSize", (float) circleSize);
-                settingEditor.putInt("updateInterval", updateIntervalHour);
+                SharedPreferences.Editor settingEditor = AppMainData.settingStorage.edit();
+                settingEditor.putInt("alarmType", AppMainData.alarmType);
+                settingEditor.putFloat("circleSize", (float) AppMainData.circleSize);
+                settingEditor.putInt("updateInterval", AppMainData.updateIntervalHour);
                 settingEditor.commit();
 
                 //테스트용
@@ -744,7 +715,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         }
     }
-
 
 
 

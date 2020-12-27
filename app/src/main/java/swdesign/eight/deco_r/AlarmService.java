@@ -27,7 +27,7 @@
 //        //throw new UnsupportedOperationException("Not yet implemented");
 //        return null;
 //    }
-//
+//0
 //    @Override
 //    public int onStartCommand(Intent intent, int flags, int startId) {
 //        //Notifi_M = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);

@@ -3,6 +3,8 @@ package swdesign.eight.deco_r;
 import android.location.Location;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 
 public class DistanceCalculator {
 //    private ArrayList<Location> pinLocations;
@@ -16,17 +18,20 @@ public class DistanceCalculator {
 //    }
 
     //원 반경 안에 들어온 핀 있으면 true, 아니면 false;
-    public boolean compareLocation(ArrayList<Location> pinLocations, Location userLocation, double circleRadius) {
+    public boolean compareLocation(LinkedList<Location> pinLocations, Location userLocation, double circleRadius) {
+
+        Iterator<Location> lListItr = pinLocations.iterator();
 
         //원반경 내에 들어온 pin 있는지 검사
-        for (int i = 0; i < pinLocations.size(); i++) {
-            Location pinLocation = pinLocations.get(i);
+        while (lListItr.hasNext()) {
+            Location pinLocation = lListItr.next();
             double distance = userLocation.distanceTo(pinLocation);
             if (distance < circleRadius) {
                 entered = true;
                 return entered;
             }
         }
+
         entered = false;
         return entered;
     }

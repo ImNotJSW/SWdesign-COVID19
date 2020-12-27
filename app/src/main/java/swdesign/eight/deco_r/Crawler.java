@@ -4,6 +4,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 import android.widget.Toast;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,9 +97,11 @@ public class Crawler {
 //            InputStream is = con.getInputStream();
 //            Reader r = new InputStreamReader(is, "utf-8");
             source = new Source(coronaUrl);
-        } catch (Exception e) {
+        } catch (MalformedURLException e) {
             e.printStackTrace();
             Log.e("Crawler Init : ", "Malformed URL text or HTML Error");
+            return;
+        } catch (IOException e) {
             return;
         }
 

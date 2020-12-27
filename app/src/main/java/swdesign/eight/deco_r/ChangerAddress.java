@@ -32,7 +32,7 @@ public class ChangerAddress {
             list = geocoder.getFromLocationName(str,1); //해당 주소를 좌표로 변환해서 저장
         } catch (IOException e) {
             e.printStackTrace();
-            Log.e("test", "입출력 오류 - 주소변환시 에러발생");
+            Log.e("changeToLocation - ", "입출력 오류 - 주소변환시 에러발생");
         }
 
         if (list != null) {
