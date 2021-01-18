@@ -74,7 +74,7 @@ public class AppMainData {
         confirmedDataList = new LinkedList<ConfirmedData>();
 
         //passedHour = 1000;
-        if (passedHour != updateIntervalHour) {
+        if (passedHour >= updateIntervalHour) {
             Log.d("dataLoad result - ", "Web crawling Again!");
             callingThread = callWebData(context);
         } else {
