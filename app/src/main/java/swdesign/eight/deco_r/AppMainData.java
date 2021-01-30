@@ -127,6 +127,7 @@ public class AppMainData {
                         ConfirmedData lineData = null;
                         int columnIndex = 0;
                         final int INVALID_LINE = -99;
+                        boolean isInvalidRow = true;
 
                         //element는 확진자 정보 표의 한 칸. (표를 Z 방향으로 읽는다고 보면 됨)
                         for (Element element : columnElementList) {
@@ -167,9 +168,13 @@ public class AppMainData {
                                             (lineData.getAddress() + " " + elementStr).replaceAll("[a-zA-Z!-,./]", "");
                                     //확진장소 좌표 조회 및 저장
                                     Location pinCoordinate = changerAddress.changeToLocation(address);
-                                    lineData.setLongitude(pinCoordinate.getLongitude());
-                                    lineData.setLatitude(pinCoordinate.getLatitude());
-                                    lineData.setAddress(address);
+                                    if(pinCoordinate == null) { //주소란이 버스번호로 되어있울 경우
+                                        isInvalidRow = false;
+                                    } else {
+                                        lineData.setLongitude(pinCoordinate.getLongitude());
+                                        lineData.setLatitude(pinCoordinate.getLatitude());
+                                        lineData.setAddress(address);
+                                    }
                                     break;
 
                                 case 5: //노출일시 열
@@ -187,7 +192,7 @@ public class AppMainData {
 
                             }
 
-                            if (columnIndex == INVALID_LINE)
+                            if (columnIndex == INVALID_LINE || isInvalidRow == false)
                                 break;
                             columnIndex++;
                         }
